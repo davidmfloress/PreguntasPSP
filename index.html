@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PSP - Preguntas Clase</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+
+        .block-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.25);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-top: 8px;
+            font-weight: bold;
+        }
+
+        .score-panel {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .score-item { text-align: center; }
+        .score-item .label { font-size: 0.9em; color: #666; margin-bottom: 5px; }
+        .score-item .value { font-size: 1.8em; font-weight: bold; color: #667eea; }
+        .score-item.correct .value { color: #28a745; }
+        .score-item.incorrect .value { color: #dc3545; }
+
+        .question-container { padding: 40px; }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .question-number { font-size: 1.1em; color: #667eea; font-weight: bold; }
+
+        .skip-btn {
+            background: #ffc107;
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .skip-btn:hover { background: #ffb300; transform: translateY(-2px); }
+
+        .question-text {
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .options { margin-bottom: 30px; }
+
+        .option {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        .option:hover { border-color: #667eea; background: #f0f4ff; }
+        .option.selected { background: #667eea; border-color: #667eea; color: white; }
+        .option.correct { background: #28a745; border-color: #28a745; color: white; }
+        .option.incorrect { background: #dc3545; border-color: #dc3545; color: white; }
+        .option.disabled { cursor: not-allowed; opacity: 0.8; }
+
+        .option-letter {
+            width: 30px;
+            height: 30px;
+            background: white;
+            color: #667eea;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .option.correct .option-letter,
+        .option.incorrect .option-letter {
+            background: rgba(255,255,255,0.3);
+            color: white;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+        }
+
+        .nav-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .nav-btn.prev { background: #6c757d; }
+        .nav-btn.prev:hover:not(:disabled) { background: #5a6268; }
+
+        .feedback {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            display: none;
+            line-height: 1.6;
+        }
+
+        .feedback.show { display: block; }
+        .feedback.correct { background: #d4edda; border-color: #28a745; }
+        .feedback.incorrect { background: #f8d7da; border-color: #dc3545; }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+
+        .final-results { display: none; padding: 40px; text-align: center; }
+        .final-results.show { display: block; }
+        .final-score { font-size: 4em; font-weight: bold; color: #667eea; margin: 20px 0; }
+
+        .grade {
+            font-size: 2em;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .grade.excelente { background: #d4edda; color: #155724; }
+        .grade.notable { background: #cce5ff; color: #004085; }
+        .grade.aprobado { background: #fff3cd; color: #856404; }
+        .grade.suspenso { background: #f8d7da; color: #721c24; }
+
+        .restart-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .restart-btn:hover { background: #218838; transform: translateY(-2px); }
+
+        .question-status {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .status-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .status-dot:hover { transform: scale(1.1); }
+        .status-dot.answered { background: #667eea; color: white; }
+        .status-dot.skipped { background: #ffc107; color: #000; }
+        .status-dot.current { border: 3px solid #667eea; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📚 Test PSP — Preguntas de Clase</h1>
+        <p>Hilos · Redes · Criptografía</p>
+        <div class="block-badge" id="blockBadge">Bloque 1 — Test original profe</div>
+    </div>
+
+    <div class="score-panel">
+        <div class="score-item">
+            <div class="label">Pregunta</div>
+            <div class="value" id="currentQuestion">1/45</div>
+        </div>
+        <div class="score-item correct">
+            <div class="label">✓ Correctas</div>
+            <div class="value" id="correctCount">0</div>
+        </div>
+        <div class="score-item incorrect">
+            <div class="label">✗ Incorrectas</div>
+            <div class="value" id="incorrectCount">0</div>
+        </div>
+        <div class="score-item">
+            <div class="label">Nota Actual</div>
+            <div class="value" id="currentScore">0.00</div>
+        </div>
+    </div>
+
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 2%"></div>
+    </div>
+
+    <div class="question-container" id="questionContainer">
+        <div class="question-header">
+            <div class="question-number" id="questionNumber">Pregunta 1 de 45</div>
+            <button class="skip-btn" id="skipBtn">⏭️ Saltar</button>
+        </div>
+
+        <div class="question-text" id="questionText"></div>
+        <div class="options" id="optionsContainer"></div>
+        <div class="feedback" id="feedback"></div>
+
+        <div class="navigation">
+            <button class="nav-btn prev" id="prevBtn" disabled>← Anterior</button>
+            <button class="nav-btn" id="nextBtn">Siguiente →</button>
+        </div>
+
+        <div class="question-status" id="questionStatus"></div>
+    </div>
+
+    <div class="final-results" id="finalResults">
+        <h2>🎉 ¡Test Completado!</h2>
+        <div class="final-score" id="finalScore">0.00</div>
+        <div class="grade" id="grade"></div>
+        <p id="resultsSummary"></p>
+        <button class="restart-btn" onclick="location.reload()">🔄 Reiniciar Test</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+
+        // ── BLOQUE 1: TEST ORIGINAL DEL PROFE ──────────────────────────────
+        {
+            block: "Bloque 1 — Test original del profe",
+            question: "La palabra synchronized en un método, ¿qué implica?",
+            options: [
+                "Que dos hilos no pueden ejecutar este método a la vez.",
+                "Que un hilo que lo ejecute necesita un notify() para salir de él.",
+                "Que un hilo no puede ejecutar este método si otro hilo está ejecutando alguno de los métodos NO sincronizados del objeto."
+            ],
+            correct: 0,
+            explanation: "synchronized solo garantiza exclusión mutua entre métodos sincronizados. NO necesita notify() para salir, y NO bloquea los métodos no sincronizados del mismo objeto."
+        },
+        {
+            block: "Bloque 1 — Test original del profe",
+            question: "¿Qué es cierto sobre el problema del productor-consumidor?",
+            options: [
+                "Se controla normalmente que en el buffer haya algo que consumir por parte del productor.",
+                "Puede implementarse aún cuando hay muchos consumidores.",
+                "Se usa notify() para esperar a que haya algo disponible en el buffer."
+            ],
+            correct: 1,
+            explanation: "El productor-consumidor funciona con múltiples consumidores. Es el CONSUMIDOR quien comprueba si hay algo que consumir (no el productor). notify() despierta, no espera: el que espera es wait()."
+        },
+        {
+            block: "Bloque 1 — Test original del profe",
+            question: "Para compartir datos entre hilos...",
+            options: [
+                "Se pueden utilizar la clase Integer, Boolean, etc.",
+                "Hace falta emplear ficheros, streams de E/S y elementos similares.",
+                "Podemos utilizar una instancia de una clase."
+            ],
+            correct: 2,
+            explanation: "Los hilos comparten el heap de la JVM. Basta con pasar una instancia de clase compartida. Integer/Boolean son inmutables (necesitarías AtomicInteger). No hace falta ficheros ni streams."
+        },
+        {
+            block: "Bloque 1 — Test original del profe",
+            question: "Los semáforos...",
+            options: [
+                "Permiten sustituir la clase Thread y la interfaz Runnable al trabajar con exclusión mutua.",
+                "Son un mecanismo de sincronización alternativo a los monitores.",
+                "Es la solución más segura a los monitores."
+            ],
+            correct: 1,
+            explanation: "Los semáforos son una alternativa a los monitores. NO sustituyen Thread ni Runnable (siguen siendo necesarios para crear hilos). No hay uno 'más seguro' de forma absoluta."
+        },
+        {
+            block: "Bloque 1 — Test original del profe",
+            question: "Al crear hilos...",
+            options: [
+                "Solo se usa wait() y notify() en ciertas ocasiones.",
+                "Siempre hay que usar el wait() y notify().",
+                "Usar wait() y notify() es opcional."
+            ],
+            correct: 0,
+            explanation: "wait() y notify() solo son necesarios cuando hay coordinación entre hilos (p.ej. productor-consumidor). No siempre se necesitan. Las opciones A y C dicen lo mismo: son opcionales / solo en ciertas ocasiones."
+        },
+        {
+            block: "Bloque 1 — Test original del profe",
+            question: "Los monitores son una característica...",
+            options: [
+                "De la clase Thread.",
+                "De todas las clases de Java.",
+                "Que se instancia con new Monitor() dentro de un método run()."
+            ],
+            correct: 1,
+            explanation: "Cada objeto Java tiene un monitor integrado (hereda de Object). No pertenece solo a Thread. No se instancia manualmente con new Monitor()."
+        },
+        {
+            block: "Bloque 1 — Test original del profe",
+            question: "Las maneras que hay de emplear monitores son...",
+            options: [
+                "Bloques sincronizados y métodos sincronizados.",
+                "Todas son correctas.",
+                "Clases sincronizadas y bloques específicos."
+            ],
+            correct: 0,
+            explanation: "Los dos mecanismos son: métodos synchronized y bloques synchronized(objeto). No existen 'clases sincronizadas' en Java."
+        },
+        {
+            block: "Bloque 1 — Test original del profe",
+            question: "Cuando se ejecuta un notify()...",
+            options: [
+                "Pasa a ejecutarse un hilo que estaba dormido.",
+                "Debe ser la última instrucción que se ejecute para no interrumpir el hilo que la ejecuta.",
+                "Ninguna es correcta."
+            ],
+            correct: 2,
+            explanation: "notify() despierta a un hilo en espera pero NO lo ejecuta inmediatamente: debe volver a competir por el monitor. Puede ejecutarse en cualquier punto del bloque synchronized, no necesariamente al final."
+        },
+        {
+            block: "Bloque 1 — Test original del profe",
+            question: "La sentencia que permite liberar un permiso en un semáforo es...",
+            options: [
+                "unlockSemaphore()",
+                "release()",
+                "notify()"
+            ],
+            correct: 1,
+            explanation: "release() devuelve un permiso al semáforo. notify() es de monitores, no de semáforos. unlockSemaphore() no existe."
+        },
+        {
+            block: "Bloque 1 — Test original del profe",
+            question: "La sección crítica es...",
+            options: [
+                "El conjunto de hilos que acceden al mismo recurso.",
+                "Ninguna es correcta.",
+                "El interbloqueo que puede darse entre hilos si no se controla bien el acceso."
+            ],
+            correct: 1,
+            explanation: "La sección crítica es el CÓDIGO (fragmento del programa) que accede a recursos compartidos y debe ejecutarse en exclusión mutua. No son los hilos, ni el interbloqueo."
+        },
+
+        // ── BLOQUE 2: NIVEL MEDIO CON TRAMPAS ──────────────────────────────
+        {
+            block: "Bloque 2 — Nivel medio con trampas",
+            question: "Si un método de instancia está declarado como synchronized, significa que:",
+            options: [
+                "Solo puede ejecutarlo un hilo a la vez sobre cualquier objeto de la clase.",
+                "Solo puede ejecutarlo un hilo a la vez sobre la misma instancia.",
+                "Bloquea automáticamente todos los métodos del objeto mientras se ejecuta."
+            ],
+            correct: 1,
+            explanation: "synchronized de instancia bloquea el monitor del OBJETO concreto. Dos objetos distintos de la misma clase pueden ejecutarlo en paralelo. NO bloquea métodos no sincronizados."
+        },
+        {
+            block: "Bloque 2 — Nivel medio con trampas",
+            question: "Respecto al método wait() en Java:",
+            options: [
+                "Suspende el hilo pero mantiene bloqueado el monitor.",
+                "Solo puede llamarse dentro de un bloque o método synchronized.",
+                "Puede usarse en cualquier parte del código si el hilo está activo."
+            ],
+            correct: 1,
+            explanation: "wait() SOLO puede llamarse dentro de un synchronized. Además libera el monitor mientras espera (al contrario de sleep). Si lo llamas fuera, lanza IllegalMonitorStateException."
+        },
+        {
+            block: "Bloque 2 — Nivel medio con trampas",
+            question: "En el problema productor–consumidor:",
+            options: [
+                "El productor debe esperar cuando el buffer esté vacío.",
+                "El consumidor debe esperar cuando el buffer esté lleno.",
+                "El productor debe esperar cuando el buffer esté lleno."
+            ],
+            correct: 2,
+            explanation: "El PRODUCTOR espera cuando el buffer está LLENO (no cabe más). El CONSUMIDOR espera cuando el buffer está VACÍO (no hay nada que consumir)."
+        },
+        {
+            block: "Bloque 2 — Nivel medio con trampas",
+            question: "Cuando se ejecuta notify() sobre un objeto:",
+            options: [
+                "El hilo que estaba esperando comienza a ejecutarse inmediatamente.",
+                "Se despierta un hilo en espera, pero deberá volver a competir por el monitor.",
+                "Se liberan todos los monitores asociados al objeto."
+            ],
+            correct: 1,
+            explanation: "notify() despierta UN hilo de los que están en wait(), pero ese hilo pasa a estado RUNNABLE y debe competir por el monitor. No se ejecuta inmediatamente."
+        },
+        {
+            block: "Bloque 2 — Nivel medio con trampas",
+            question: "¿Cuál de las siguientes afirmaciones sobre TCP es correcta?",
+            options: [
+                "No garantiza el orden de los datos, pero sí la entrega.",
+                "Es orientado a conexión y garantiza entrega en orden.",
+                "Es más rápido que UDP porque retransmite paquetes perdidos."
+            ],
+            correct: 1,
+            explanation: "TCP es orientado a conexión (3-way handshake), garantiza entrega Y orden. UDP es más rápido precisamente porque NO retransmite ni garantiza nada."
+        },
+        {
+            block: "Bloque 2 — Nivel medio con trampas",
+            question: "En criptografía simétrica:",
+            options: [
+                "Cada usuario tiene una clave pública distinta.",
+                "Se utiliza una única clave compartida para cifrar y descifrar.",
+                "No existe problema de distribución de clave."
+            ],
+            correct: 1,
+            explanation: "Simétrica = una sola clave para cifrar Y descifrar. La clave pública es de la criptografía ASIMÉTRICA. El principal problema de la simétrica ES precisamente distribuir la clave de forma segura."
+        },
+        {
+            block: "Bloque 2 — Nivel medio con trampas",
+            question: "Respecto a UDP:",
+            options: [
+                "Garantiza la entrega de los datagramas, pero no el orden.",
+                "No es orientado a conexión y no garantiza entrega ni orden.",
+                "Utiliza ServerSocket y Socket en Java."
+            ],
+            correct: 1,
+            explanation: "UDP no garantiza NI entrega NI orden. ServerSocket/Socket son de TCP. En UDP se usan DatagramSocket y DatagramPacket."
+        },
+        {
+            block: "Bloque 2 — Nivel medio con trampas",
+            question: "La sección crítica es:",
+            options: [
+                "El conjunto de hilos que acceden a un mismo recurso.",
+                "El código donde se accede a un recurso compartido y debe ejecutarse en exclusión mutua.",
+                "Un estado especial del hilo cuando está bloqueado."
+            ],
+            correct: 1,
+            explanation: "Sección crítica = el FRAGMENTO DE CÓDIGO que accede al recurso compartido y debe ejecutarse en exclusión mutua. No son los hilos ni un estado del hilo."
+        },
+        {
+            block: "Bloque 2 — Nivel medio con trampas",
+            question: "Un semáforo con valor inicial 3 significa que:",
+            options: [
+                "Solo 3 hilos pueden acceder simultáneamente al recurso protegido.",
+                "Solo pueden crearse 3 hilos en total.",
+                "El recurso solo puede utilizarse 3 veces en toda la ejecución."
+            ],
+            correct: 0,
+            explanation: "El valor del semáforo = número de hilos que pueden entrar a la vez. Con valor 3, máximo 3 hilos simultáneos. No limita el total de hilos ni de usos."
+        },
+        {
+            block: "Bloque 2 — Nivel medio con trampas",
+            question: "En criptografía asimétrica:",
+            options: [
+                "Se cifra con la clave privada del receptor.",
+                "Se cifra con la clave pública del receptor.",
+                "Se cifra con una clave compartida entre ambos."
+            ],
+            correct: 1,
+            explanation: "Para enviar un mensaje cifrado al receptor: se cifra con su CLAVE PÚBLICA. Solo él, con su clave PRIVADA, puede descifrarlo. La clave privada NUNCA se comparte."
+        },
+
+        // ── BLOQUE 3: NIVEL AVANZADO ────────────────────────────────────────
+        {
+            block: "Bloque 3 — Nivel avanzado",
+            question: "Un método static synchronized en Java bloquea:",
+            options: [
+                "El monitor de la instancia actual.",
+                "El monitor de la clase (Class object).",
+                "Todos los objetos creados de esa clase automáticamente."
+            ],
+            correct: 1,
+            explanation: "static synchronized bloquea el monitor de la CLASE (el objeto Class). Los métodos synchronized de instancia bloquean el monitor del objeto concreto. Son dos monitores distintos."
+        },
+        {
+            block: "Bloque 3 — Nivel avanzado",
+            question: "Si un hilo ejecuta wait() y nadie ejecuta notify() ni notifyAll(), el hilo:",
+            options: [
+                "Continúa automáticamente cuando el monitor quede libre.",
+                "Permanece esperando indefinidamente (salvo interrupción externa).",
+                "Se libera automáticamente al salir del bloque synchronized."
+            ],
+            correct: 1,
+            explanation: "wait() duerme al hilo hasta que alguien llame notify() o notifyAll(). Sin esa llamada, el hilo espera indefinidamente. Esto es un deadlock potencial."
+        },
+        {
+            block: "Bloque 3 — Nivel avanzado",
+            question: "¿Cuál es la principal desventaja de la criptografía simétrica?",
+            options: [
+                "Es demasiado lenta para comunicaciones en red.",
+                "Requiere un canal seguro para intercambiar la clave.",
+                "No permite cifrar mensajes largos."
+            ],
+            correct: 1,
+            explanation: "La simétrica es MUY RÁPIDA (ventaja). El problema es que ambas partes necesitan la misma clave y no hay forma segura de enviársela sin que alguien la intercepte. Por eso existe la criptografía híbrida."
+        },
+        {
+            block: "Bloque 3 — Nivel avanzado",
+            question: "En TCP, el control de flujo sirve para:",
+            options: [
+                "Garantizar que los paquetes lleguen en orden.",
+                "Evitar que el emisor envíe datos más rápido de lo que el receptor puede procesar.",
+                "Detectar errores en los bits del mensaje."
+            ],
+            correct: 1,
+            explanation: "Control de flujo = ajustar velocidad emisor/receptor. El orden lo garantiza la numeración de secuencia. Los errores los detecta el checksum. Son tres mecanismos distintos."
+        },
+        {
+            block: "Bloque 3 — Nivel avanzado",
+            question: "En Java, DatagramSocket se utiliza cuando trabajamos con:",
+            options: [
+                "TCP.",
+                "UDP.",
+                "HTTP exclusivamente."
+            ],
+            correct: 1,
+            explanation: "DatagramSocket + DatagramPacket = UDP. ServerSocket + Socket = TCP. HTTP es un protocolo de aplicación que usa TCP por debajo."
+        },
+        {
+            block: "Bloque 3 — Nivel avanzado",
+            question: "Un hilo que ha sido despertado mediante notify():",
+            options: [
+                "Pasa directamente a ejecutar la siguiente instrucción tras el wait().",
+                "Pasa al estado RUNNABLE y debe recuperar el monitor antes de continuar.",
+                "Se ejecuta aunque el monitor siga ocupado."
+            ],
+            correct: 1,
+            explanation: "notify() → el hilo pasa de WAITING a RUNNABLE. Debe competir por el monitor igual que cualquier otro hilo. Solo cuando lo obtenga continuará tras el wait()."
+        },
+        {
+            block: "Bloque 3 — Nivel avanzado",
+            question: "¿Cuál de las siguientes afirmaciones es correcta sobre criptografía?",
+            options: [
+                "En criptografía asimétrica, la clave pública debe mantenerse en secreto.",
+                "En criptografía simétrica, todos los participantes comparten la misma clave.",
+                "En criptografía híbrida solo se usa criptografía asimétrica."
+            ],
+            correct: 1,
+            explanation: "Simétrica = todos comparten UNA clave. La pública se comparte libremente (no es secreta). En la híbrida se usa asimétrica para intercambiar la clave simétrica, luego simétrica para todo."
+        },
+        {
+            block: "Bloque 3 — Nivel avanzado",
+            question: "Si dos objetos distintos de la misma clase tienen un método synchronized, entonces:",
+            options: [
+                "Solo un hilo puede ejecutar ese método en cualquier objeto de la clase.",
+                "Cada objeto tiene su propio monitor, por lo que pueden ejecutarse en paralelo.",
+                "El método deja de ser sincronizado automáticamente."
+            ],
+            correct: 1,
+            explanation: "synchronized de instancia usa el monitor del OBJETO, no de la clase. Dos objetos distintos → dos monitores distintos → pueden ejecutarse en paralelo. Si fuera static synchronized sería distinto."
+        },
+        {
+            block: "Bloque 3 — Nivel avanzado",
+            question: "En criptografía asimétrica, si alguien obtiene tu clave pública:",
+            options: [
+                "Puede descifrar todos tus mensajes.",
+                "Puede cifrar mensajes para que solo tú los leas.",
+                "Puede suplantar tu identidad automáticamente."
+            ],
+            correct: 1,
+            explanation: "La clave pública CIFRA mensajes hacia ti. Solo tú, con tu clave privada, los descifras. No permite descifrar ni suplantar identidad (para eso harían falta tu clave privada)."
+        },
+
+        // ── BLOQUE 4: TRAMPAS FINAS ─────────────────────────────────────────
+        {
+            block: "Bloque 4 — Trampas finas",
+            question: "Si una clase tiene:\npublic static synchronized void metodo() { }\n\nDos objetos DISTINTOS llaman a este método simultáneamente. ¿Qué ocurre?",
+            options: [
+                "Pueden ejecutarse en paralelo porque son objetos distintos.",
+                "No pueden ejecutarse en paralelo porque comparten el monitor de la CLASE.",
+                "Solo uno puede ejecutarse si pertenecen al mismo paquete."
+            ],
+            correct: 1,
+            explanation: "TRAMPA CLÁSICA. Aunque sean objetos distintos, static synchronized bloquea el monitor de la CLASE, que es único. Por tanto solo un hilo a la vez puede ejecutar métodos static synchronized de esa clase."
+        },
+        {
+            block: "Bloque 4 — Trampas finas",
+            question: "Si una clase tiene:\npublic synchronized void metodo() { }\n\nSe crean DOS objetos distintos. ¿Pueden ejecutarse en paralelo?",
+            options: [
+                "No, porque el método es synchronized.",
+                "Sí, porque cada objeto tiene su propio monitor.",
+                "Solo pueden ejecutarse si uno llama primero a notify()."
+            ],
+            correct: 1,
+            explanation: "synchronized de instancia (no static) usa el monitor del objeto. Dos objetos distintos = dos monitores distintos = pueden ejecutarse en paralelo sin problema."
+        },
+        {
+            block: "Bloque 4 — Trampas finas",
+            question: "En TCP, ¿qué mecanismo garantiza que los paquetes lleguen en el mismo orden en que se enviaron?",
+            options: [
+                "Control de flujo.",
+                "Numeración de secuencia.",
+                "Checksum."
+            ],
+            correct: 1,
+            explanation: "Orden → numeración de secuencia. Control de flujo → ajusta velocidad emisor/receptor. Checksum → detecta errores en bits. Tres mecanismos distintos, no confundirlos."
+        },
+        {
+            block: "Bloque 4 — Trampas finas",
+            question: "Si alguien obtiene tu clave pública, puede:",
+            options: [
+                "Descifrar los mensajes que te han enviado.",
+                "Cifrar mensajes para que solo tú puedas leerlos.",
+                "Obtener tu clave privada mediante cálculo directo."
+            ],
+            correct: 1,
+            explanation: "Clave pública = libre para todos, sirve para CIFRAR mensajes hacia ti. Solo tu clave privada descifra. La clave privada no se puede calcular a partir de la pública (en la práctica)."
+        },
+
+        // ── BLOQUE 5: EXAMEN SIMULADO COMPLETO ─────────────────────────────
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "Si un hilo ejecuta wait() dentro de un método synchronized y otro hilo ejecuta notify(), entonces:",
+            options: [
+                "El hilo despertado continúa inmediatamente su ejecución dentro del método.",
+                "El hilo despertado pasa a estado RUNNABLE y debe recuperar el monitor para continuar.",
+                "Ambos hilos quedan bloqueados hasta salir del método."
+            ],
+            correct: 1,
+            explanation: "notify() despierta el hilo (WAITING → RUNNABLE) pero el hilo notificante sigue ejecutando. El despertado solo continúa cuando el notificante libere el monitor y el despertado lo recupere."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "¿Cuál de las siguientes afirmaciones es correcta sobre UDP?",
+            options: [
+                "Garantiza la entrega y el orden de los datagramas.",
+                "No establece conexión previa y no garantiza entrega ni orden.",
+                "Usa ServerSocket para escuchar conexiones."
+            ],
+            correct: 1,
+            explanation: "UDP: sin conexión, sin garantías de entrega ni orden. ServerSocket es de TCP. La ventaja de UDP es velocidad y menor latencia."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "Un método static synchronized:",
+            options: [
+                "Bloquea el monitor de la instancia actual.",
+                "Bloquea el monitor de la clase.",
+                "Solo puede ejecutarse si no hay otros métodos synchronized activos en cualquier clase."
+            ],
+            correct: 1,
+            explanation: "static synchronized → monitor de la CLASE (único para toda la clase). Synchronized sin static → monitor del objeto concreto."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "En criptografía simétrica, el principal problema es:",
+            options: [
+                "Que es demasiado lenta para redes modernas.",
+                "Que requiere intercambiar la clave de forma segura.",
+                "Que no permite firmar mensajes."
+            ],
+            correct: 1,
+            explanation: "Simétrica es rápida pero el problema es el intercambio seguro de la clave. Para resolverlo se usa criptografía asimétrica (o híbrida)."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "En el problema productor–consumidor, el consumidor debe:",
+            options: [
+                "Esperar cuando el buffer esté vacío.",
+                "Esperar cuando el buffer esté lleno.",
+                "Liberar el monitor antes de consumir."
+            ],
+            correct: 0,
+            explanation: "Consumidor espera cuando buffer VACÍO. Productor espera cuando buffer LLENO. El monitor se libera automáticamente con wait(), no manualmente."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "Si dos instancias distintas de una misma clase tienen un método synchronized, entonces:",
+            options: [
+                "Solo un hilo puede ejecutarlo en cualquier instancia.",
+                "Pueden ejecutarse en paralelo porque cada instancia tiene su propio monitor.",
+                "El segundo hilo lanza una excepción."
+            ],
+            correct: 1,
+            explanation: "Cada objeto = su propio monitor. Dos objetos distintos pueden ejecutar sus métodos synchronized en paralelo. No hay excepción."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "¿Cuál de las siguientes afirmaciones sobre notify() es correcta?",
+            options: [
+                "Libera el monitor automáticamente.",
+                "Despierta a un hilo en espera, pero no libera el monitor inmediatamente.",
+                "Ejecuta directamente el hilo que estaba esperando."
+            ],
+            correct: 1,
+            explanation: "notify() despierta un hilo pero el hilo actual SIGUE ejecutando con el monitor. El monitor se libera al salir del bloque synchronized."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "En criptografía asimétrica, para enviar un mensaje cifrado al receptor:",
+            options: [
+                "Se cifra con la clave privada del receptor.",
+                "Se cifra con la clave pública del receptor.",
+                "Se utiliza una única clave compartida."
+            ],
+            correct: 1,
+            explanation: "Cifrar para alguien → usar su clave PÚBLICA. Solo él descifra con su clave PRIVADA. La clave compartida es de la criptografía simétrica."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "Un semáforo con valor inicial 1 actúa como:",
+            options: [
+                "Un mecanismo de exclusión mutua similar a un monitor.",
+                "Un contador ilimitado de hilos.",
+                "Un sistema de firma digital."
+            ],
+            correct: 0,
+            explanation: "Semáforo con valor 1 = semáforo binario = mutex. Solo 1 hilo a la vez → exclusión mutua, igual que synchronized. Con valor N permite N hilos simultáneos."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "Si nadie ejecuta notify() tras un wait():",
+            options: [
+                "El hilo continúa automáticamente al salir del synchronized.",
+                "El hilo puede quedar esperando indefinidamente.",
+                "El monitor se libera permanentemente."
+            ],
+            correct: 1,
+            explanation: "Sin notify()/notifyAll(), el hilo queda en WAITING indefinidamente → posible deadlock. El monitor no se libera 'permanentemente', vuelve a estar disponible cuando el hilo que lo tiene sale del synchronized."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "¿Cuál es la afirmación correcta sobre TCP?",
+            options: [
+                "Es más rápido que UDP porque retransmite paquetes perdidos.",
+                "Garantiza entrega fiable y en orden.",
+                "No requiere establecimiento previo de conexión."
+            ],
+            correct: 1,
+            explanation: "TCP: fiable, ordenado, con conexión. UDP es más rápido PRECISAMENTE porque no retransmite. TCP requiere 3-way handshake antes de enviar datos."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "En criptografía híbrida:",
+            options: [
+                "Solo se usa criptografía asimétrica durante toda la comunicación.",
+                "Se usa asimétrica para intercambiar una clave simétrica y luego simétrica para el resto.",
+                "Solo se usa criptografía simétrica."
+            ],
+            correct: 1,
+            explanation: "Híbrida = lo mejor de ambos. RSA (asimétrica) intercambia la clave AES (simétrica) de forma segura. Luego AES cifra toda la comunicación de forma eficiente. Así funciona HTTPS."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "Cuando un hilo intenta entrar en un bloque synchronized cuyo monitor está ocupado:",
+            options: [
+                "Entra igualmente pero espera dentro del bloque.",
+                "Pasa al estado BLOCKED hasta que el monitor quede libre.",
+                "Lanza una excepción automática."
+            ],
+            correct: 1,
+            explanation: "El hilo pasa a estado BLOCKED (no WAITING). BLOCKED = esperando un monitor. WAITING = esperando un notify(). Son estados distintos del ciclo de vida del hilo."
+        },
+        {
+            block: "Bloque 5 — Examen simulado",
+            question: "¿Cuál es correcta respecto a la firma digital?",
+            options: [
+                "Se firma con la clave pública y se verifica con la privada.",
+                "Se firma con la clave privada y se verifica con la pública.",
+                "Utiliza únicamente criptografía simétrica."
+            ],
+            correct: 1,
+            explanation: "Firma digital: firmas con tu clave PRIVADA (solo tú puedes hacerlo). Cualquiera verifica con tu clave PÚBLICA. Garantiza autenticidad (eres tú quien firmó) e integridad (no fue modificado)."
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let correctAnswers = 0;
+    let incorrectAnswers = 0;
+    let answeredQuestions = new Array(questions.length).fill(null);
+    let skippedQuestions = new Set();
+
+    function loadQuestion() {
+        const question = questions[currentQuestionIndex];
+        document.getElementById('questionNumber').textContent = `Pregunta ${currentQuestionIndex + 1} de ${questions.length}`;
+        document.getElementById('currentQuestion').textContent = `${currentQuestionIndex + 1}/${questions.length}`;
+        document.getElementById('questionText').textContent = question.question;
+        document.getElementById('blockBadge').textContent = question.block;
+
+        const optionsContainer = document.getElementById('optionsContainer');
+        optionsContainer.innerHTML = '';
+
+        const letters = ['A', 'B', 'C', 'D'];
+        question.options.forEach((option, index) => {
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'option';
+
+            if (answeredQuestions[currentQuestionIndex] !== null) {
+                optionDiv.classList.add('disabled');
+                if (index === question.correct) {
+                    optionDiv.classList.add('correct');
+                } else if (index === answeredQuestions[currentQuestionIndex]) {
+                    optionDiv.classList.add('incorrect');
+                }
+            }
+
+            optionDiv.innerHTML = `
+                <div class="option-letter">${letters[index]}</div>
+                <div>${option}</div>
+            `;
+
+            if (answeredQuestions[currentQuestionIndex] === null) {
+                optionDiv.onclick = () => selectOption(index);
+            }
+
+            optionsContainer.appendChild(optionDiv);
+        });
+
+        updateNavButtons();
+        updateProgress();
+        updateQuestionStatus();
+
+        const feedback = document.getElementById('feedback');
+        feedback.classList.remove('show');
+        if (answeredQuestions[currentQuestionIndex] !== null) {
+            const wasCorrect = answeredQuestions[currentQuestionIndex] === question.correct;
+            showFeedbackStatic(wasCorrect, question.explanation);
+        }
+    }
+
+    function selectOption(index) {
+        if (answeredQuestions[currentQuestionIndex] !== null) return;
+
+        const question = questions[currentQuestionIndex];
+        answeredQuestions[currentQuestionIndex] = index;
+        skippedQuestions.delete(currentQuestionIndex);
+
+        const isCorrect = index === question.correct;
+        if (isCorrect) correctAnswers++;
+        else incorrectAnswers++;
+
+        updateScore();
+        showFeedbackStatic(isCorrect, question.explanation);
+        loadQuestion();
+    }
+
+    function showFeedbackStatic(isCorrect, explanation) {
+        const feedback = document.getElementById('feedback');
+        feedback.classList.add('show');
+        feedback.classList.remove('correct', 'incorrect');
+
+        if (isCorrect) {
+            feedback.classList.add('correct');
+            feedback.innerHTML = `✅ <strong>¡Correcto!</strong> ${explanation}`;
+        } else {
+            feedback.classList.add('incorrect');
+            feedback.innerHTML = `❌ <strong>Incorrecto.</strong> ${explanation}`;
+        }
+    }
+
+    function updateScore() {
+        document.getElementById('correctCount').textContent = correctAnswers;
+        document.getElementById('incorrectCount').textContent = incorrectAnswers;
+        const score = correctAnswers - (incorrectAnswers * 0.25);
+        const finalScore = Math.max(0, (score / questions.length) * 10);
+        document.getElementById('currentScore').textContent = finalScore.toFixed(2);
+    }
+
+    function updateProgress() {
+        const answered = answeredQuestions.filter(a => a !== null).length;
+        document.getElementById('progressFill').style.width = (answered / questions.length * 100) + '%';
+    }
+
+    function updateNavButtons() {
+        document.getElementById('prevBtn').disabled = currentQuestionIndex === 0;
+        const nextBtn = document.getElementById('nextBtn');
+        nextBtn.textContent = currentQuestionIndex === questions.length - 1 ? '🏁 Finalizar' : 'Siguiente →';
+    }
+
+    function updateQuestionStatus() {
+        const statusContainer = document.getElementById('questionStatus');
+        statusContainer.innerHTML = '';
+
+        questions.forEach((_, index) => {
+            const dot = document.createElement('div');
+            dot.className = 'status-dot';
+            dot.textContent = index + 1;
+
+            if (index === currentQuestionIndex) dot.classList.add('current');
+            if (answeredQuestions[index] !== null) dot.classList.add('answered');
+            if (skippedQuestions.has(index)) dot.classList.add('skipped');
+
+            dot.onclick = () => { currentQuestionIndex = index; loadQuestion(); };
+            statusContainer.appendChild(dot);
+        });
+    }
+
+    document.getElementById('prevBtn').onclick = () => {
+        if (currentQuestionIndex > 0) { currentQuestionIndex--; loadQuestion(); }
+    };
+
+    document.getElementById('nextBtn').onclick = () => {
+        if (currentQuestionIndex < questions.length - 1) { currentQuestionIndex++; loadQuestion(); }
+        else showResults();
+    };
+
+    document.getElementById('skipBtn').onclick = () => {
+        if (answeredQuestions[currentQuestionIndex] === null) skippedQuestions.add(currentQuestionIndex);
+        if (currentQuestionIndex < questions.length - 1) { currentQuestionIndex++; loadQuestion(); }
+    };
+
+    function showResults() {
+        const score = correctAnswers - (incorrectAnswers * 0.25);
+        const finalScore = Math.max(0, (score / questions.length) * 10);
+
+        document.getElementById('questionContainer').style.display = 'none';
+        document.getElementById('finalResults').classList.add('show');
+        document.getElementById('finalScore').textContent = finalScore.toFixed(2);
+
+        const gradeDiv = document.getElementById('grade');
+        let gradeText, gradeClass;
+        if (finalScore >= 9)      { gradeText = '🏆 SOBRESALIENTE'; gradeClass = 'excelente'; }
+        else if (finalScore >= 7) { gradeText = '⭐ NOTABLE';        gradeClass = 'notable'; }
+        else if (finalScore >= 5) { gradeText = '✅ APROBADO';       gradeClass = 'aprobado'; }
+        else                      { gradeText = '❌ SUSPENSO';       gradeClass = 'suspenso'; }
+
+        gradeDiv.textContent = gradeText;
+        gradeDiv.className = 'grade ' + gradeClass;
+
+        const unanswered = questions.length - answeredQuestions.filter(a => a !== null).length;
+        document.getElementById('resultsSummary').innerHTML = `
+            <p style="font-size:1.2em; margin-top:20px; line-height:2">
+                <strong>Correctas:</strong> ${correctAnswers} ✅<br>
+                <strong>Incorrectas:</strong> ${incorrectAnswers} ❌<br>
+                <strong>Sin responder:</strong> ${unanswered} ⚠️<br>
+                <strong>Puntuación bruta:</strong> ${score.toFixed(2)} / ${questions.length}
+            </p>
+        `;
+    }
+
+    loadQuestion();
+</script>
+</body>
+</html>
